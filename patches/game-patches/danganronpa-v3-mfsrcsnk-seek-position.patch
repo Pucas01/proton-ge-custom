@@ -1,0 +1,33 @@
+Subject: [PATCH] mfsrcsnk: Don't trust the position returned by IMFByteStream::Seek.
+
+Danganronpa V3 (Steam app 567640) returns a bogus position from its own
+byte stream, which sends the MP4 demuxer into an endless seek loop.
+---
+diff --git a/dlls/mfsrcsnk/media_source.c b/dlls/mfsrcsnk/media_source.c
+index 09c611dfa6e..43336e2d332 100644
+--- a/dlls/mfsrcsnk/media_source.c
++++ b/dlls/mfsrcsnk/media_source.c
+@@ -1764,12 +1764,21 @@ static HRESULT stream_descriptor_create(UINT32 id, IMFMediaType *media_type, IMF
+ static NTSTATUS CDECL media_source_seek_cb( struct winedmo_stream *stream, UINT64 *pos )
+ {
+     struct media_source *source = CONTAINING_RECORD(stream, struct media_source, winedmo_stream);
++    UINT64 target = *pos, current = 0;
+     TRACE("stream %p, pos %p\n", stream, pos);
+ 
+-    if (FAILED(IMFByteStream_Seek(source->stream, msoBegin, *pos, 0, pos)))
++    if (FAILED(IMFByteStream_Seek(source->stream, msoBegin, target, 0, &current)))
+         return STATUS_UNSUCCESSFUL;
+ 
+-    source->position = *pos;
++    if (current != target)
++    {
++        current = ~(UINT64)0;
++        if (FAILED(IMFByteStream_GetCurrentPosition(source->stream, &current)) || current != target)
++            WARN("Byte stream reported position %#I64x after seeking to %#I64x, assuming seek succeeded\n", current, target);
++    }
++
++    *pos = target;
++    source->position = target;
+     return STATUS_SUCCESS;
+ }
+ 

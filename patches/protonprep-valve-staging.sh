@@ -354,6 +354,9 @@ apply_all_in_dir() {
     echo "WINE: -GAME FIXES- restore Return to Krondor text bitmap readback"
     apply_patch "../patches/game-patches/return-to-krondor-text-bitmap-readback.patch"
 
+    echo "WINE: -GAME FIXES- fix Danganronpa V3 movie hang"
+    apply_patch "../patches/game-patches/danganronpa-v3-mfsrcsnk-seek-position.patch"
+
     echo "WINE: -GAME FIXES- repair NASCAR 25 protected loader state"
     apply_patch "../patches/game-patches/nascar25-protector.patch"
 
